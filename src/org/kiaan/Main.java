@@ -1,4 +1,4 @@
-/*
+ /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
@@ -20,12 +20,17 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import javax.swing.table.DefaultTableModel;
 import org.bson.types.ObjectId;
 import Utile.persianCalendar;
+import com.mongodb.CommandResult;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoIterable;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import myControls.Main_view;
+import org.bson.Document;
 import org.json.JSONException;
 import org.json.JSONObject;
 /**
@@ -38,18 +43,21 @@ public class Main {
      
     /**
      * @param args the command line arguments
+     * @throws java.io.IOException
      */
     public static void main(String[] args) throws IOException {
         // TODO code application logic here
         db();
         date();
+//        getBuy();
         
-        Main_view Main = new Main_view();
-        Main.setFocusable(true);
-        Main.setVisible(true);        
-        
+//        Main_view Main = new Main_view();
+//        Main.setFocusable(true);
+//        Main.setVisible(true);        
+//        
 //        getBranchesWithProject();
-        mergeJson();
+        
+//        mergeJson();
         
         
     }   
@@ -134,205 +142,287 @@ public class Main {
         try{
             //connect to db
             MongoClient MongoClient = new MongoClient("localhost", 27017);
-            List<String> databaseNames = MongoClient.getDatabaseNames();            
+            MongoIterable<String> databaseNames =  MongoClient.listDatabaseNames();
+//            MongoDatabase kiaanDB = MongoClient.getDatabase("kiaan");            
             //check exists kiaan db
             Boolean blnDBExists = false;
-            for(String str : databaseNames){
-                if (str.equals("kiaan")) {
-                    blnDBExists = true;
+            for(String DBName : databaseNames){
+                if (DBName.equals("kiaan")) {
+                    blnDBExists = true;                    
                     System.out.println("kiaan database is exists.");
+                    break;
                 }
             }           
             if (blnDBExists == false) System.out.println("create kiaan database...");            
-            DB mydb = MongoClient.getDB("kiaan");
+            MongoDatabase mydb = MongoClient.getDatabase("kiaan");
             System.out.println("Connect to database successfully");
-            //Check exist mycol
-            if(mydb.collectionExists("g_users") == false){
-                DBCollection mycol = mydb.getCollection("g_users");
-                //create g_users collection
-                ObjectId usr_id = new ObjectId();
-                BasicDBObject doc = new BasicDBObject("create_date",new Date())
+            //Check exist user collection
+            Boolean blnCollectionName = false;
+            for(String collectionName : mydb.listCollectionNames()){
+                if (collectionName.equals("user")) {
+                    blnCollectionName = true;
+                    break;
+                }               
+            }
+            if (!blnCollectionName){
+                //create users collection
+                ObjectId user_id = new ObjectId();
+                Document doc = new Document()
                         .append("name", "مدیران")
-                        .append("credit_limit", 0)
-                        .append("status", true)                        
-                        .append("users", new BasicDBObject("_id", usr_id)                                
-                                .append("create_date", new Date())
-                                .append("username", "admin")
-                                .append("password", "123")
-                                .append("f_name", "مدیر")
-                                .append("l_name", "اصلی(پیش فرض سیستم)")
-                                .append("status", true)
-                        )
-                        ;
-                mycol.insert(doc);
-                System.out.println("g_users Document created...");
-                //create banks collection
+                        //.append("credit_limit", 0)
+//                        .append("status", true)
+                        .append("comment", "پیش فرض سیستم(غیرقابل حذف)")
+                        .append("creator_id", user_id)
+                        .append("users", new Document("_id", user_id)                                
+                                .append("id", 1)
+                                .append("first_name", "مدیر عامل")
+                                .append("last_name", "(پیش فرض سیستم)")                                
+                                .append("user_name", "admin")
+                                .append("password", "1602")                                
+                                //.append("status", false)
+                                .append("creator_id", user_id)
+                        );
+                mydb.getCollection("user").insertOne(doc);
+                System.out.println("user collection created...");
                 doc.clear();
-//                db.banks.findOne({"name":"ملی"},{"_id" :0, "name": 0}).branches;
-//                db.banks.findOne({},{"_id" :0, "branches": 0});
-                
-                
+                //
                 BasicDBList dbl = new BasicDBList();
-                dbl.add(new BasicDBObject("_id", new ObjectId())
-                        .append("branch_id",8561)
+                ObjectId branch_id = new ObjectId();
+                dbl.add(new Document("_id", branch_id)
+                        .append("id",8561)
                         .append("name","بازار رضا")
                         .append("city","مشهد")
+                        .append("creator_id", user_id)
                 );
-                doc = new BasicDBObject("name","ملی")
-                        .append("branches", dbl);
-                mydb.getCollection("banks").insert(doc);
+                dbl.add(new Document("_id", new ObjectId())
+                        .append("id",8576)
+                        .append("name","غدیر")
+                        .append("city","مشهد")
+                        .append("creator_id", user_id)
+                );
+                ObjectId bank_id = new ObjectId();
+                doc = new Document("_id", bank_id)
+                        .append("name", "ملی")
+//                        .append("logo", "")
+                        .append("creator_id", user_id)
+                        .append("branches", dbl);                
+                mydb.getCollection("bank").insertOne(doc);
+                
                 dbl = new BasicDBList();
-                dbl.add(new BasicDBObject("_id", new ObjectId())
-                        .append("branch_id",3238)
+                dbl.add(new Document("_id", new ObjectId())
+                        .append("id",3238)
                         .append("name","بازار رضا")
                         .append("city","مشهد")
+                        .append("creator_id", user_id)
                 );
-                doc = new BasicDBObject("_id", new ObjectId())
+                doc = new Document()
                         .append("name","صادرات")
+//                        .append("logo", "")
+                        .append("creator_id", user_id)
                         .append("branches", dbl);
-                mydb.getCollection("banks").insert(doc);
+                mydb.getCollection("bank").insertOne(doc);
+                //
+                doc = new Document()
+                        .append("name", "ملت")
+                        .append("creator_id", user_id)
+                        .append("branches", new BasicDBList());
+                mydb.getCollection("bank").insertOne(doc);
                 //add doc to array
-                DBObject listItem = new BasicDBObject("branches", new BasicDBObject("_id", new ObjectId())
-                        .append("branch_id",8576)
-                        .append("name","دقیقی")
-                        .append("city","مشهد")
-                );
-                DBObject findQuery = new BasicDBObject("name", "ملی");
-                DBObject updateQuery = new BasicDBObject("$push", listItem);
-                mydb.getCollection("banks").update(findQuery, updateQuery);
-                System.out.println("banks Document created...");
+//                DBObject listItem = new BasicDBObject("branches", new BasicDBObject("_id", new ObjectId())
+//                        .append("branch_id",8576)
+//                        .append("name","دقیقی")
+//                        .append("city","مشهد")
+//                );
+//                DBObject findQuery = new BasicDBObject("name", "ملی");
+//                DBObject updateQuery = new BasicDBObject("$push", listItem);
+//                mydb.getCollection("banks").update(findQuery, updateQuery);                                
+                //
+                System.out.println("bank collection created...");
                 
-                //add g_person
+                //add person
                 doc.clear(); dbl.clear();
-                dbl.add(new BasicDBObject("prsn_id",1)
+                ObjectId person_id1 = new ObjectId();
+                ObjectId person_id2 = new ObjectId();
+                dbl.add(new Document("_id",person_id1)
+                        .append("id", 1)
                         .append("type", "سایر")
-                        .append("f_name", "نقدی")
-                        .append("l_name", "حساب")
-                        .append("comment", "جهت معاملات نقدی مشتریان بدون حساب")
-                        .append("usr_id", usr_id)
+                        .append("first_name", "نقدی")
+                        .append("last_name", "حساب")                        
+                        .append("comment", "جهت معاملات نقدی مشتریان بدون حساب")                        
+                        .append("creator_id", user_id)
                 );
-                doc = new BasicDBObject("name","مشتری")
-                        .append("usr_id", usr_id)
+                
+                BasicDBList dbl_tel = new BasicDBList();
+                BasicDBList dbl_bankAcc = new BasicDBList();
+                dbl_tel.add(new Document("_id", new ObjectId())
+                        .append("type", "mobile")
+                        .append("number", "09151213139")
+                        .append("default", true)
+                );
+                dbl_tel.add(new Document("_id", new ObjectId())
+                        .append("type", "mobile")
+                        .append("number", "09151112233")
+                );
+                dbl_tel.add(new Document("_id", new ObjectId())
+                        .append("type", "work")
+                        .append("number", "05133661313")
+                        .append("default", true)
+                );                
+                dbl_bankAcc.add(new Document("_id", new ObjectId())
+                        .append("type", "bank_acc")
+                        .append("bank_id", bank_id)
+                        .append("number", "4218504285")
+                        .append("comment", "تجارت بازار رضا")
+                        .append("default", true)
+                );
+                dbl_bankAcc.add(new Document("_id", new ObjectId())
+                        .append("type", "sheba")
+                        .append("bank_id", bank_id)
+                        .append("number", "600120020000004218504285")
+                );
+                dbl.add(new Document("_id",person_id2)
+                        .append("id", 2)
+                        .append("type", "حقیقی")
+                        .append("first_name", "مرتضی")
+                        .append("last_name", "الیاسی")
+                        .append("gender", true)
+                        .append("credit_limit", 10000000)
+                        .append("address", "بازار رضا - بازار سوم از طرف قلکه آب - پلاک 2/716")                        
+                        .append("creator_id", user_id)
+                        .append("tel", dbl_tel)
+                        .append("bank_account", dbl_bankAcc)
+                );
+                doc = new Document("name","مشتری")
+                        .append("creator_id", user_id)
                         .append("persons", dbl);
-                mydb.getCollection("g_persons").insert(doc);
-                mydb.getCollection("g_persons").insert(
-                        new BasicDBObject("name","سهامدار")                                
-                                .append("usr_id", usr_id)
-                                .append("persons", null));
-                System.out.println("g_persons Document created...");
-                //add g_costs
-                doc.clear(); dbl.clear();
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","تخفیف")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
-                );
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","مالیات")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
-                );
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","کرایه")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
-                );
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","کارمزد بانکی")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
-                );
-                doc = new BasicDBObject("name","پیش فرض سیستم")                        
-                        .append("usr_id", usr_id)
-                        .append("costs", dbl);
-                mydb.getCollection("g_costs").insert(doc);
-                System.out.println("g_costs Document created...");
+                mydb.getCollection("person").insertOne(doc);
                 
-                //add g_costs
-                doc.clear(); dbl.clear();
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","تخفیف")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
+                mydb.getCollection("person").insertOne(
+                        new Document("name","سهامدار")                                
+                            .append("creator_id", user_id)
+                            .append("persons", new BasicDBList())
                 );
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","مالیات")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
-                );
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","کرایه")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
-                );
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("name","سود سپرده بانکی")
-                        .append("default_amount", null)                        
-                        .append("usr_id", usr_id)
-                );
-                doc = new BasicDBObject("name","پیش فرض سیستم")                        
-                        .append("usr_id", usr_id)
-                        .append("incomes", dbl);
-                mydb.getCollection("g_incomes").insert(doc);
-                System.out.println("g_incomes Document created...");
-                                
-                //add g_products
-                doc.clear(); dbl.clear();
-                dbl.add(new BasicDBObject("prdt_id",1)
+                System.out.println("person collection created...");
+                //
+                doc = new Document("id", 1)
+                        .append("account_no", "0205575259006")
+                        .append("account_holder", "مصطفی قاسمی")
+                        .append("bank_id", bank_id)
+                        .append("branch_id", branch_id)
+                        .append("type", 0)
+                        .append("comment", "حساب پوز")
+                        .append("creator_id", user_id)
+                ;                
+                mydb.getCollection("bank_account").insertOne(doc);
+                doc = new Document("id", 2)
+                        .append("account_no", "0207723518008")
+                        .append("account_holder", "مصطفی قاسمی")
+                        .append("bank_id", bank_id)
+                        .append("branch_id", branch_id)
+                        .append("type", 1)                        
+                        .append("creator_id", user_id)
+                ;           
+                mydb.getCollection("bank_account").insertOne(doc);
+                
+                System.out.println("bank_account collection created...");
+                //add units
+                ObjectId unit_id = new ObjectId();
+                doc = new Document("_id", unit_id)
+                        .append("name", "ریال")
+                        .append("creator_id", user_id)
+                ;
+                mydb.getCollection("unit").insertOne(doc);
+                System.out.println("Unit collection created...");
+                //add products
+                dbl = new BasicDBList();
+                ObjectId product_id = new ObjectId();                
+                dbl.add(new Document("_id",product_id)
+                        .append("id", 1)
                         .append("name", "ساچمه")
-                        .append("unit", "مثقال")
-                        .append("usr_id", usr_id)
+                        .append("unit_id", unit_id)
+                        .append("min_stock", 1000)
+                        .append("default_price", 8300)
+                        .append("comment", "توضیحات کالا")
+                        .append("creator_id", user_id)
                 );
-                doc = new BasicDBObject("name","نقره")                        
-                        .append("usr_id", usr_id)
+                dbl.add(new Document("_id",new ObjectId())
+                        .append("id", 2)
+                        .append("name", "سکه")
+                        .append("unit_id", unit_id)
+                        .append("min_stock", 10)
+                        .append("default_price", 80000)
+                        .append("comment", "توضیحات کالا سکه")
+                        .append("creator_id", user_id)
+                );
+                doc = new Document("name","نقره")
+                        .append("comment", "توضیحات گروه کالا")
+                        .append("creator_id", user_id)                        
                         .append("products", dbl);
-                mydb.getCollection("g_products").insert(doc);                
-                System.out.println("g_products Document created...");
+                mydb.getCollection("product").insertOne(doc);
+                //
+                dbl.clear();
+                dbl.add(new Document("_id",new ObjectId())
+                        .append("id", 3)
+                        .append("name", "نقره")
+                        .append("unit_id", unit_id)
+                        .append("min_stock", 100)
+                        .append("default_price", 2500)
+                        .append("comment", "توضیحات کالا گل نقره")
+                        .append("creator_id", user_id)
+                );
+                doc = new Document("name","گل")
+                        .append("comment", "توضیحات گروه کالای گل")
+                        .append("creator_id", user_id)                        
+                        .append("products", dbl);
+                mydb.getCollection("product").insertOne(doc);
+                //
+                System.out.println("product Document created...");
                 
-                //add buy_invoices
+                //add buy
                 doc.clear(); dbl.clear();
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("prdt_id", 1)
+                dbl.add(new Document("_id",new ObjectId())
+                        .append("product_id", product_id)
                         .append("value", 100)
                         .append("price", 9250)
                         .append("comment", "تست توضیحات سطر اول")                                                                                                
                 );
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("prdt_id", 1)
+                dbl.add(new Document("_id",new ObjectId())
+                        .append("product_id", product_id)
                         .append("value", 350)
                         .append("price", 9350)
                         .append("comment", "تست توضیحات سطر دوم")
                 );
-                doc = new BasicDBObject("number", 1)
-                        .append("date", new Date())
-                        .append("prsn_id", 1)
+                doc = new Document("_id", new ObjectId())                        
+                        .append("type", "buy")
+                        .append("id", 1)
+                        .append("person_id", person_id1)
+                        .append("by", "جعفری علی")
+                        .append("discount", -1500)
+//                        .append("increase", 0)
+                        .append("tax", 4000)
+//                        .append("fare", 0)
                         .append("comment", "تست توضیحات فاکتور")                        
-                        .append("usr_id", usr_id)
+                        .append("creator_id", user_id)
                         .append("items", dbl);
-                mydb.getCollection("buy_invoices").insert(doc);
-                doc.clear(); dbl.clear();
-                dbl.add(new BasicDBObject("_id",new ObjectId())
-                        .append("prdt_id", 1)
-                        .append("value", 1000)
-                        .append("price", 930)                        
-                );
-                doc = new BasicDBObject("number", 2)
-                        .append("date", new Date())
-                        .append("prsn_id", 1)
-                        .append("usr_id", usr_id)
-                        .append("items", dbl);
-                mydb.getCollection("buy_invoices").insert(doc);         
-                System.out.println("buy_invoices Document created...");
-                
-            } else {
-                DBCollection mycol = mydb.getCollection("user_groups");
-                BasicDBObject doc = new BasicDBObject("users.password" , "123");
-                DBObject myDoc = mycol.findOne(doc);
-//                System.out.println(myDoc);
+                mydb.getCollection("buy").insertOne(doc);
+//                doc.clear(); dbl.clear();
+//                dbl.add(new BasicDBObject("_id",new ObjectId())
+//                        .append("product_id", 1)
+//                        .append("value", 1000)
+//                        .append("price", 9300)                        
+//                );
+//                doc = new BasicDBObject("num", 2)
+//                        .append("date", new Date())                        
+//                        .append("person_id", person_id2)
+//                        .append("by", "یوسفی غلام")
+//                        .append("discount", 0)
+//                        .append("increase", 0)
+//                        .append("user_id", user_id)
+//                        .append("items", dbl);
+//                mydb.getCollection("buy").insert(doc);         
+                System.out.println("buy Document created...");
                 
             }
-
-            
 
 //            System.out.println("Collection created successfully");
 //            BasicDBObject doc = new BasicDBObject("name","mongoDB");
@@ -359,7 +449,7 @@ public class Main {
 //            System.out.println(persianCalendar.getMonth());
 //            System.out.println(persianCalendar.getWeekDay());
 //            System.out.println(persianCalendar.getTimeInMillis()  );
-    }
+    }     
     
     public static void getFind(){
         try{
@@ -367,12 +457,10 @@ public class Main {
                 DB db = mongoClient.getDB( "kiaan" );
                 DBCollection coll = db.getCollection("test");
     //            BasicDBObject doc = new BasicDBObject("_id" , false);
-    //            DBCursor cursor = (DBCursor) coll.findOne(null, doc);
+//                DBCursor cursor = (DBCursor) coll.findOne(null, doc);
                 DBCursor cursor = coll.find();
     //            db.banks.findOne({},{"_id" :0, "branches": 0});
 
-                String[] columnNames = {"_id", "id", "name"};
-                DefaultTableModel model = new DefaultTableModel(columnNames, 0);
 
                 while(cursor.hasNext()) {                  
                     DBObject obj = cursor.next();
@@ -458,11 +546,16 @@ public class Main {
                 .allowDiskUse(true)
                 .build();
             
+            BasicDBObject dbo = new BasicDBObject();            
+            BasicDBList dbl = new BasicDBList();
             Cursor cursor = coll.aggregate(pipeline, aggregationOptions);
-            while (cursor.hasNext()) {
-                System.out.println(cursor.next());
-            }
-
+            while (cursor.hasNext()) { 
+                dbo = (BasicDBObject) cursor.next();
+                System.out.println(dbo.toString());
+//                dbl.add(cursor.next());                
+            }                                             
+            System.out.println(dbl.toString());
+            
 //            while(cursor.hasNext()) {                  
 //                DBObject obj = cursor.next();               
 //                System.out.println(obj.get("branches"));
@@ -472,13 +565,109 @@ public class Main {
 ////                model.addRow(new Object[] { id, first, last });
 //            }
 //            tbl.setModel(model);
+            
+            
         } catch(Exception e){
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
         }
         
     }
     
-    
+    private static void getBuy(){
+        try{
+            MongoClient mongoClient = new MongoClient("localhost", 27017);
+            DB db = mongoClient.getDB( "kiaan" );
+            DBCollection coll = db.getCollection("buy");
+            //aggregate
+            DBObject unwind = new BasicDBObject("$unwind","$items");
+            //$group            
+            DBObject group_id = new BasicDBObject("_id", "$_id");
+            group_id.put("num", "$num");
+            group_id.put("person_id", "$person_id");
+            group_id.put("discount", "$discount");
+            group_id.put("increase", "$increase");
+            //$group -> $multiply
+            BasicDBList args  = new BasicDBList();
+            args.add("$items.value");
+            args.add("$items.price");
+            DBObject multiply = new BasicDBObject("$multiply", args);
+            //$group -> $sum
+//            DBObject group_sum = new BasicDBObject("$sum", multiply);
+            DBObject group_field = new BasicDBObject();
+            group_field.put("_id", group_id);
+            group_field.put("total", new BasicDBObject("$sum", multiply));
+            DBObject group = new BasicDBObject("$group",group_field);
+            //$project
+            DBObject project_field = new BasicDBObject("_id","$_id._id");
+            project_field.put("person_id", "$_id.person_id");
+            project_field.put("num", "$_id.num");
+            BasicDBList arr = new BasicDBList();
+            arr.add("$total");arr.add("$_id.discount");arr.add("$_id.increase");
+            DBObject field_add = new BasicDBObject("$add",arr);
+            project_field.put("sum", field_add);
+            DBObject project = new BasicDBObject("$project",project_field);
+            DBObject sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
+            List<DBObject> pipeline = Arrays.asList(unwind, group, project, sort);
+            
+//            AggregationOutput output = coll.aggregate(pipeline);
+//            for (DBObject result : output.results()) {
+//                System.out.println(result);
+//            }
+            
+            AggregationOptions aggregationOptions = AggregationOptions.builder()
+                .batchSize(100)
+                .outputMode(AggregationOptions.OutputMode.CURSOR)
+                .allowDiskUse(true)
+                .build();
+            
+            BasicDBObject dbo = new BasicDBObject();            
+            BasicDBList dbl = new BasicDBList();
+            Cursor cursor = coll.aggregate(pipeline, aggregationOptions);
+            //
+            DBCollection person_col = db.getCollection("persons");
+            
+//            BasicDBObject query = new BasicDBObject("items.personId",1);             
+            BasicDBObject fields = new BasicDBObject("items.$",1)                    
+                    .append("_id",false);
+            
+//            BasicDBList l_per = (BasicDBList) person_col.findOne(query, fields).get("items");
+//            BasicDBObject[] lightArr = l_per.toArray(new BasicDBObject[0]);            
+//            System.out.println(lightArr[0].get("_id"));
+//            System.out.println(lightArr[0].get("first_name"));  
+            
+            
+        
+            
+            
+            BasicDBList result = new BasicDBList();
+            while (cursor.hasNext()) {                 
+                dbo = (BasicDBObject) cursor.next();
+//                System.out.println(dbo.toString());  
+                DBObject query = new BasicDBObject("items._id", (ObjectId) dbo.get("person_id"));
+                BasicDBList lst_person = (BasicDBList) person_col.findOne(query, fields).get("items");
+                BasicDBObject[] lightArr = lst_person.toArray(new BasicDBObject[0]);                            
+//                System.out.println(lightArr[0].get("first_name"));
+                
+                Date date = ((ObjectId) lightArr[0].get("_id")).getDate();
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(date);
+                persianCalendar persianCalendar = new persianCalendar(calendar);            
+                
+                dbo.put("date", persianCalendar.getNumericDateFormatWithTime());
+                dbo.put("personId", lightArr[0].get("personId").toString());
+                dbo.put("first_name", lightArr[0].get("first_name").toString());
+                dbo.put("last_name", lightArr[0].get("last_name").toString());
+                
+                dbo.removeField("person_id");
+                result.add(dbo);
+//                System.out.println(dbo.get("num"));                  
+            }                                             
+            System.out.println(result.toString());
+                        
+        } catch(Exception e){
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+        }
+    }
     
     }
 

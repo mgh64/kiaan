@@ -229,6 +229,16 @@ public class persianCalendar {
                 .append("/")
                 .append(String.valueOf(month))
                 .append("/")
+                .append(String.valueOf(date));              
+        return String.valueOf(numericDateFormat);
+    }
+    
+    public String getNumericDateFormatWithTime() {
+        StringBuilder numericDateFormat = new StringBuilder();
+        numericDateFormat.append(String.valueOf(year))
+                .append("/")
+                .append(String.valueOf(month))
+                .append("/")
                 .append(String.valueOf(date))
                 .append(" ")
                 .append(getTime());

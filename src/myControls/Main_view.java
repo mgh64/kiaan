@@ -254,35 +254,21 @@ public class Main_view extends JFrame {
         //
         MongoClient mongoClient = null;
         DBCursor cursor = null;
-        try {
-            mongoClient = new MongoClient( "localhost" , 27017 );
-            DB db = mongoClient.getDB( "kiaan" );
-            DBCollection coll = db.getCollection("banks");
-            cursor = coll.find();
-
-            String[] columnNames = {"id", "name"};
-            DefaultTableModel model = new DefaultTableModel(columnNames, 0);
-
-            while(cursor.hasNext()) {
-                    DBObject obj = cursor.next();
-                    String first = (String)obj.get("name");
-                    ObjectId id = (ObjectId)obj.get("_id");
-                    model.addRow(new Object[] { id, first });
-            }
-            table.setModel(model);
-
-            cursor.close(); 
-            mongoClient.close();
-        } catch (UnknownHostException ex) {
-                System.out.println(ex);
-            } finally {
-                if (cursor!= null) {
-                    cursor.close();
-                }
-                if (mongoClient != null) {
-                     mongoClient.close();
-                }   
-            }
+        mongoClient = new MongoClient( "localhost" , 27017 );
+        DB db = mongoClient.getDB( "kiaan" );
+        DBCollection coll = db.getCollection("banks");
+        cursor = coll.find();
+        String[] columnNames = {"id", "name"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+        while(cursor.hasNext()) {
+            DBObject obj = cursor.next();
+            String first = (String)obj.get("name");
+            ObjectId id = (ObjectId)obj.get("_id");
+            model.addRow(new Object[] { id, first });
+        }
+        table.setModel(model);
+        cursor.close();
+        mongoClient.close();
         //
         return pnl;
     }
